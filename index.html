@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+
+<head>
+    <title>FruitTD</title>
+    <style>
+    #play:hover
+        {
+            background-color: red;   
+        }
+    
+    </style>
+</head>
+
+<body style="background:url('image/wallpaper.png')">
+    <button id="play"style="margin-left:472px;margin-top:545px;cursor: pointer;border: 0;background: transparent; position: absolute" type="submit"  onClick="proceedToGame()" />
+    <img src="image/play.png" width="310" height="125" alt="submit" />
+    </button>
+
+<script>
+function proceedToGame()
+    {
+        document.getElementById("play").style.cursor='wait';
+        setTimeout(function(){window.location='fruitTD.html'},3000);
+    }
+
+</script>
+</body>
+
+</html>

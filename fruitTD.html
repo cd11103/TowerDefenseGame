@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script type="text/javascript" src="js/pathfinding-browser.min.js"></script>
+    <script src="js/stages.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/creep.js"></script>
+    <script src="js/gameGrid.js"></script>
+    <script src="js/tower.js"></script>
+    <script src="js/dragdrop.js"></script>
+    <script src="js/missile.js"></script>
+    <style>
+        html,
+        body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            background-color: black;
+            
+        }
+        #grid {
+            position: absolute;
+        }
+        
+        @font-face{
+         font-family: 'Adventure';
+             font-style: normal;
+            font-weight: 100;
+            src: local('Avdenture Regular') format('ttf');
+            
+        }
+        
+        #upgradeTower {
+            position: absolute;
+            width:120px;
+            height:120px;
+            background-color:rgba(255, 0, 0, 0.13);
+            
+           
+        }
+        .dragclass {
+            position: absolute;
+            cursor: pointer;
+            opacity: 1;
+            height: 120px;
+            width: 120px;
+            top: 0px;
+            left: 0px;
+            background-color: rgba(0, 0, 0, 0.25);
+        }
+        .dragPanell {
+            position: absolute;
+            cursor: move;
+            opacity: 1;
+            height: 148px;
+            width: 539px;
+            top: 660px;
+            left: 0px;
+            background-color: rgba(252, 185, 93, 0);
+        }
+            #canvas {
+    border: 1px solid black;
+            position: absolute;
+}
+        }
+        
+        
+
+    </style>
+</head>
+
+<body>
+    <div id="grid"></div>
+    <canvas id="gameCanvas" style="height: 660px;width: 1260px;background:url('image/background3.png');"></canvas>
+   
+    <div style="display: none" id="upgradeTower">
+        <button style="position: absolute;cursor: pointer;border: 0;background: transparent"id = "upgrade" onclick = "clickUpgradeTower()"/><img style="opacity:0.8" src="image/upgrade.png" width="85" height="85" alt="submit" /></button>
+        <button style="margin-left:68px;margin-top: 70px;position: absolute;cursor: pointer;border: 0;background: transparent" id = "delete" onclick="clickDeleteTower();" /><img style="opacity:0.8" src="image/delete.png" width="40" height="40" alt="submit" /></button>
+    </div>
+
+    <div style="display:none;position: absolute; top: 177px;left: 328px" id="stageEnd"><img style="opacity: 0.9"src="image/stageEnd.png"></div>
+   
+    <div style="display:none;position: absolute; top: 35px;left: 35px" id="win"><img style="opacity: 0.9"src="image/win.png"></div>
+
+    <div style="display:none;position: absolute; top: 35px;left: 35px" id="lose"><img style="opacity: 0.9"src="image/lose.png"></div>
+   
+<div style="border:2px solid;border-radius: 25px;background-color: rgb(197, 237, 255);width: 1260px;height: 148px;position:absolute;top: 660px"><div style="display:none" id="fruitTD"><img style="margin-left:97px;margin-top:17px" src="image/fruitTD.png" height="130px" width="400px"></div></div>
+   
+    <div style="width: 300px;margin-top: 23px;margin-left: 675px;position: absolute;font-size: 40px;font-family: 'Agency FB'" id="displayTotalMoney"></div>
+   
+    <div style="width: 300px;margin-top: 70px;margin-left: 687px;position: absolute;font-size: 40px;font-family: 'Agency FB'" id="displayLife"></div>
+    
+    <div style="width: 500px;margin-left: 952px;position: absolute;font-size: 100px;font-family: 'Agency FB'"id="displayStage"></div>
+    
+    <div class="dragPanell" id="dragPanell">
+        <label style="width: 123px;font-family: 'Agency FB';position: absolute;margin-left:475px">Cost: $250 </label>
+        
+        <div style="background-color: rgba(252, 185, 93, 0);margin-top:20px; margin-left:446px" class="dragclass" id="arrowTower">
+            <img  width="120px" height="120px" src="image/arrowTowerLevell1.png">
+
+        </div>
+
+        <button style="margin-left:30px;margin-top:26px;cursor: pointer;border: 0;background: transparent; position: absolute;font-family:'Adventure';font-size:35px" type="submit" id="toSpawnCreep" onClick="clickSpawnCreep()" />
+        <img src="image/start.png" width="300" height="100" alt="submit" />
+        </button>
+    </div>
+
+
+
+    <!--   <div onclick="tower.iceTower();" id="iceTower"><img width="150px" height="150px"src="image/iceTower.png">
+    
+        </div>-->
+    <script>
+       
+        
+        
+        document.createSvg = function(tagName) {
+            return this.createElementNS("http://www.w3.org/2000/svg", tagName);
+        }
+
+        function grid(numberPerSide, size) {
+            var svg = document.createSvg("svg");
+            svg.setAttribute("width", 1260);
+            svg.setAttribute("height", 660);
+            svg.setAttribute("viewBox", [0, 0, 1260, 660].join(" "));
+
+            for (var i = 0; i < 21; i++) {
+                var row = new Array();
+                //screen coordinate row push 
+                gameGrid.nodePosition.push(row);
+                for (var j = 0; j < 11; j++) {
+
+                    //screen coordinate row push horizontally
+                    var col = new Array();
+                    col.push(i * 60);
+                    col.push(j * 60);
+                    row.push(col);
+
+
+
+                    var box = document.createSvg("rect");
+                    box.setAttribute("width", 60);
+                    box.setAttribute("height", 60);
+                    box.setAttribute("id", "b" + i + j);
+                    box.setAttribute("transform", ["translate(", i * 60, ",", j * 60, ")"].join(""));
+                    box.setAttribute("fill", "rgba(255, 255, 255, 0)");
+                    box.setAttribute("stroke", "rgb(191, 190, 190)");
+                    box.setAttribute("stroke-width", 0);
+                    svg.appendChild(box);
+
+                }
+            }
+
+
+
+            svg.addEventListener("click",function(e) {
+                    var id = e.target.id;
+                    
+                    for(var k = 0;k<fruitTD.towerList.length;k++)
+                    {
+                        for(var l=0;l<fruitTD.towerList[k].towerGrids.length;l++)
+                        {
+                            
+                            if(id == "b"+fruitTD.towerList[k].towerGrids[l][0].toString() + fruitTD.towerList[k].towerGrids[l][1].toString() )
+                           {
+                           fruitTD.towerList[k].showUpdateOrDeleteButton();
+                           }
+                        }
+                        
+                    }
+                    
+                
+                   
+                
+                
+                    for(var j = 0;j<fruitTD.towerCreatedList.length;j++)
+                    {
+                        for(var z=0;z<fruitTD.towerCreatedList[j].towerGrids.length;z++)
+                            {
+
+                                if(id == "b"+fruitTD.towerCreatedList[j].towerGrids[z][0].toString() + fruitTD.towerCreatedList[j].towerGrids[z][1].toString() )
+                               {
+                               fruitTD.towerCreatedList[j].showUpdateOrDeleteButton();
+                               }
+                            }
+                    }
+                }, false);
+            return svg;
+
+        }
+
+
+
+
+        function highlightGrid(x, y) {
+
+            // alert(x);
+            // alert(y);
+            // alert(gameGrid.grid.nodes[x][y].walkable);
+            // console.log(gameGrid.grid.nodes[y][x]);
+            if (gameGrid.grid.nodes[y][x].walkable == true) {
+                document.getElementById("b" + x.toString() + y.toString()).setAttribute("fill", "rgba(0,255,0,.5)");
+
+            } else {
+                document.getElementById("b" + x.toString() + y.toString()).setAttribute("fill", "rgba(183, 0, 0, 0.5)");
+            }
+
+        }
+
+     
+
+
+        function highlightGridTransparent(x, y) {
+
+
+            document.getElementById("b" + x.toString() + y.toString()).setAttribute("fill", "rgba(255,255,255,.0)");
+
+
+        }
+
+
+
+
+
+   
+
+
+
+        window.onload = function() {
+            //setInterval(function(){fruitTD.render();},33);
+            //setInterval(function(){fruitTD.creepMovement();},500);
+            
+            fruitTD.setContext(document.getElementById("gameCanvas"));
+
+            document.getElementById("grid").appendChild(grid(5, 10));
+
+            
+            //document.getElementById("delete").addEventListener("click", clickDeleteTower, false);
+
+            requestAnimationFrame(fruitTD.render);
+        }
+
+
+        function clickSpawnCreep() {
+
+            fruitTD.startGame();
+            //fruitTD.clearSpawnedCreep();
+
+        }
+        
+        
+        function clickUpgradeTower() {
+
+            
+            for(var i = 0;i<fruitTD.towerList.length;i++)
+            {
+                var upgradeTower = document.getElementById("upgradeTower");
+                 if(upgradeTower.style.top == fruitTD.towerList[i].towerPositionY+"px" && upgradeTower.style.left == fruitTD.towerList[i].towerPositionX+"px")
+                {
+                    
+                    //fruitTD.towerList[i].towerImage.src="image/arrowTowerLevel"+ ++fruitTD.towerList[i].level +".png";
+                    
+                    
+                    if(fruitTD.towerList[i].level==1)
+                    {
+                        if(fruitTD.gameTotalMoney<fruitTD.towerList[i].upgradeLevel2Cost)
+                        {
+                            alert("NOT ENOUGH MONEY!");   
+                        }
+                        else if(fruitTD.gameTotalMoney>=fruitTD.towerList[i].upgradeLevel2Cost)
+                        {
+                            
+                            fruitTD.towerList[i].damage+=300;
+                            
+                            fruitTD.gameTotalMoney -= fruitTD.towerList[i].upgradeLevel2Cost;
+                            
+                            fruitTD.towerList[i].towerImage.src="image/arrowTowerLevell"+ ++fruitTD.towerList[i].level +".png";
+                        }
+                        
+                    }
+                    else if(fruitTD.towerList[i].level==2)
+                    {
+                        
+                        if(fruitTD.gameTotalMoney<fruitTD.towerList[i].upgradeLevel3Cost)
+                        {
+                            alert("NOT ENOUGH MONEY!");   
+                        }
+                        else if(fruitTD.gameTotalMoney>=fruitTD.towerList[i].upgradeLevel3Cost)
+                        {
+                        fruitTD.gameTotalMoney -= fruitTD.towerList[i].upgradeLevel3Cost;
+                            
+                             fruitTD.towerList[i].towerImage.src="image/arrowTowerLevell"+ ++fruitTD.towerList[i].level +".png";
+                            
+                            fruitTD.towerList[i].damage+=300;
+            
+                        }
+                    }
+                }
+                 
+            }
+            
+            for(var j = 0;j<fruitTD.towerCreatedList.length;j++)
+            {
+                var upgradeTower = document.getElementById("upgradeTower");
+                if(upgradeTower.style.top == fruitTD.towerCreatedList[j].towerPositionY+"px" && upgradeTower.style.left == fruitTD.towerCreatedList[j].towerPositionX+"px")
+                {
+                     
+                    if(fruitTD.towerCreatedList[j].level==1)
+                    {
+                        if(fruitTD.gameTotalMoney<fruitTD.towerCreatedList[j].upgradeLevel2Cost)
+                        {
+                            alert("NOT ENOUGH MONEY!");   
+                        }
+                        else if(fruitTD.gameTotalMoney>=fruitTD.towerCreatedList[j].upgradeLevel2Cost)
+                        {
+                            
+                            fruitTD.towerCreatedList[j].damage+=50;
+                            
+                            fruitTD.gameTotalMoney -= fruitTD.towerCreatedList[j].upgradeLevel2Cost;
+                            
+                            fruitTD.towerCreatedList[j].towerImage.src="image/arrowTowerLevell"+ ++fruitTD.towerCreatedList[j].level +".png";
+                        }
+                        
+                    }
+                    else if(fruitTD.towerCreatedList[j].level==2)
+                    {
+                        
+                        if(fruitTD.gameTotalMoney<fruitTD.towerCreatedList[j].upgradeLevel3Cost)
+                        {
+                            alert("NOT ENOUGH MONEY!");   
+                        }
+                        else if(fruitTD.gameTotalMoney>=fruitTD.towerCreatedList[j].upgradeLevel3Cost)
+                        {
+                        fruitTD.gameTotalMoney -= fruitTD.towerCreatedList[j].upgradeLevel3Cost;
+                            
+                             fruitTD.towerCreatedList[j].towerImage.src="image/arrowTowerLevell"+ ++fruitTD.towerCreatedList[j].level +".png";
+                            
+                            fruitTD.towerCreatedList[j].damage+=50;
+            
+                        }
+                    }
+                }
+                 
+            }
+            document.getElementById("upgradeTower").style.display="none";
+
+        }
+        
+        function clickDeleteTower() {
+                        
+            for(var i = 0;i<fruitTD.towerList.length;i++)
+            {
+                var upgradeTower = document.getElementById("upgradeTower");
+                if(upgradeTower.style.top == fruitTD.towerList[i].towerPositionY+"px" && upgradeTower.style.left == fruitTD.towerList[i].towerPositionX+"px")
+                {
+                    fruitTD.unblockGridX = fruitTD.towerList[i].towerGridPositionX;
+                   
+                    fruitTD.unblockGridY = fruitTD.towerList[i].towerGridPositionY;
+                    
+                    
+                    fruitTD.towerList[i].destroy = true;
+                    
+                    fruitTD.towerList.splice(i,1);
+                    
+                    fruitTD.gameTotalMoney+=250;
+                    
+                    
+                    gameGrid.grid.setWalkableAt(fruitTD.unblockGridX, fruitTD.unblockGridY, true);
+            
+                    gameGrid.grid.setWalkableAt(fruitTD.unblockGridX + 1, fruitTD.unblockGridY, true);
+        
+                    gameGrid.grid.setWalkableAt(fruitTD.unblockGridX + 1, fruitTD.unblockGridY + 1, true);
+                    
+                    gameGrid.grid.setWalkableAt(fruitTD.unblockGridX , fruitTD.unblockGridY + 1, true);
+                }
+                
+            }
+            
+                       
+    
+            for(var j = 0;j<fruitTD.towerCreatedList.length;j++)
+            {
+                var upgradeTower = document.getElementById("upgradeTower");
+                 if(upgradeTower.style.top == fruitTD.towerCreatedList[j].towerPositionY+"px" && upgradeTower.style.left == fruitTD.towerCreatedList[j].towerPositionX+"px")
+                {
+                    fruitTD.unblockCreatedGridX = fruitTD.towerCreatedList[j].towerGridPositionX;
+                   
+                    fruitTD.unblockCreatedGridY = fruitTD.towerCreatedList[j].towerGridPositionY;
+                    
+                    fruitTD.towerCreatedList[j].destroy = true;
+                    
+                    fruitTD.towerCreatedList.splice(j,1);
+                    
+                    fruitTD.gameTotalMoney+=250;
+                    
+                    gameGrid.grid.setWalkableAt(fruitTD.unblockCreatedGridX, fruitTD.unblockCreatedGridY, true);
+            
+                    gameGrid.grid.setWalkableAt(fruitTD.unblockCreatedGridX + 1, fruitTD.unblockCreatedGridY, true);
+        
+                    gameGrid.grid.setWalkableAt(fruitTD.unblockCreatedGridX + 1, fruitTD.unblockCreatedGridY + 1, true);
+                    
+                    gameGrid.grid.setWalkableAt(fruitTD.unblockCreatedGridX , fruitTD.unblockCreatedGridY + 1, true);
+                    
+                }
+                
+                //window.blockDelete=false;
+                
+            }
+            
+            
+            
+            
+            document.getElementById("upgradeTower").style.display="none";
+        }
+
+        
+        //var blockDelete = false;
+
+        var towerAvailableBuildPositionRow = [];
+        var towerAvailableBuildPositionCol = [];
+        var towerGridX = 0;
+        var towerGridY = 0;
+        var xCoordinatePosition = 0;
+        var yCoordinatePosition = 0;
+        (function() {
+
+            document.getElementById("panel");
+            var n = 500;
+            var dragok = false;
+            var y, x, d, dy, dx;
+
+            function pointer(e) {
+                if (!e) e = window.event;
+                if (dragok) {
+                    //console.log(e.clientX);
+                    d.style.left = dx + e.clientX - x + "px";
+                    d.style.top = dy + e.clientY - y + "px";
+
+
+                    //getPosition
+
+                    element = document.getElementById("arrowTower");
+                    xCoordinatePosition = (element.offsetLeft - element.scrollLeft + element.clientLeft);
+                    yCoordinatePosition = (element.offsetTop - element.scrollTop + element.clientTop);
+
+
+
+                    eClientX = e.clientX;
+
+                    eClientY = e.clientY;
+
+                    xCoordinatePosition = (eClientX < 0) ? 0 : eClientX;
+                    yCoordinatePosition = (eClientY < 0) ? 0 : eClientY;
+
+                    xCoordinatePosition = (eClientX > 1140) ? 1140 : eClientX;
+                    yCoordinatePosition = (eClientY > 540) ? 540 : eClientY;
+
+                    towerGridX = ((xCoordinatePosition - (xCoordinatePosition % 60)) / 60);
+
+                    towerGridY = ((yCoordinatePosition - (yCoordinatePosition % 60)) / 60);
+
+                    //alert("The image is located at: " + towerGridX + ", " + towerGridY);
+
+                    for (var svgRow = 0; svgRow < gameGrid.nodePosition.length; svgRow++) {
+                        for (var svgCol = 0; svgCol < gameGrid.nodePosition[0].length; svgCol++) {
+                            document.getElementById("b" + svgRow.toString() + svgCol.toString()).setAttribute("fill", "rgba(255,255,255,.0)");
+                            
+                        }
+                    }
+
+
+                    highlightGrid(towerGridX, towerGridY);
+                    highlightGrid(towerGridX + 1, towerGridY + 1);
+                    highlightGrid(towerGridX + 1, towerGridY);
+                    highlightGrid(towerGridX, towerGridY + 1);
+                    /*
+    towerAreaDetectionAttackCreep(towerGridX-1,towerGridY-1);
+     towerAreaDetectionAttackCreep(towerGridX-1,towerGridY);
+     towerAreaDetectionAttackCreep(towerGridX+1,towerGridY-1);
+     towerAreaDetectionAttackCreep(towerGridX+2,towerGridY-1);
+      towerAreaDetectionAttackCreep(towerGridX+2,towerGridY);
+     towerAreaDetectionAttackCreep(towerGridX-1,towerGridY+1);
+     towerAreaDetectionAttackCreep(towerGridX-1,towerGridY+2);
+     towerAreaDetectionAttackCreep(towerGridX,towerGridY+2);
+      towerAreaDetectionAttackCreep(towerGridX+1,towerGridY+2);
+     towerAreaDetectionAttackCreep(towerGridX+2,towerGridY+2);
+     towerAreaDetectionAttackCreep(towerGridX+2,towerGridY+1);
+     towerAreaDetectionAttackCreep(towerGridX,towerGridY-1);
+     
+        */
+
+                    //towerAvailableBuildPositionCol
+                    towerAvailableBuildPositionRow = [towerGridY, towerGridY + 1, towerGridY, towerGridY + 1];
+
+                    towerAvailableBuildPositionCol = [towerGridX, towerGridX + 1, towerGridX + 1, towerGridX];
+
+                    // alert(towerAvailableBuildPosition);
+                    return false;
+                }
+            }
+
+            function down(e)
+
+            {
+
+
+                //document.getElementById("arrowTower").style.left=e.clientX;
+
+                document.getElementById("arrowTower").style.opacity = "1";
+
+                if (!e) e = window.event;
+
+                document.getElementById("arrowTower").style.top = e.clientY;
+
+                document.getElementById("arrowTower").style.left = e.clientX;
+
+                var temp = (typeof e.target != "undefined") ? e.target : e.srcElement;
+
+                if (temp.tagName != "HTML" | "BODY" && temp.className != "dragclass") {
+                    temp = (typeof temp.parentNode != "undefined") ? temp.parentNode : temp.parentElement;
+                }
+
+                if (temp.className == "dragclass") {
+
+                    if (window.opera) {
+                        document.getElementById("Q").focus();
+                    }
+
+                    dragok = true;
+
+                    temp.style.zIndex = n++;
+
+                    d = temp;
+
+                    dx = parseInt(temp.style.left + 0);
+
+                    dy = parseInt(temp.style.top + 0);
+
+                    x = e.clientX;
+
+                    y = e.clientY;
+
+                    document.onmousemove = pointer;
+
+                    return false;
+                }
+
+
+            }
+            var clickMode = true;
+            
+            function toggle() {
+                
+                    if(fruitTD.gameTotalMoney<250)
+                    {
+                        fruitTD.towerbuildClickCondition=false;
+                    }
+                    else if(fruitTD.gameTotalMoney>=250)
+                    {
+
+                        fruitTD.towerbuildClickCondition=true;  
+                    }
+
+                        if (clickMode == true) {
+                           if(fruitTD.towerbuildClickCondition==true)
+                           {
+                            down();
+                           }
+                            else
+                            {
+                             alert("NOT ENOUGH MONEY!");   
+                            }
+                        } else {
+                            
+                                up();
+                        }
+                        clickMode = !clickMode;
+                
+            }
+            
+            function up() {
+
+                dragok = false;
+                document.onmousemove = null;
+                var buildCondition = false;
+
+
+                outerloop: for (var towerGridBuildCheckRow = 0; towerGridBuildCheckRow < towerAvailableBuildPositionRow.length; towerGridBuildCheckRow++) {
+                    innerloop: for (var towerGridBuildCheckCol = 0; towerGridBuildCheckCol < towerAvailableBuildPositionCol.length; towerGridBuildCheckCol++) {
+
+                        if (gameGrid.grid.nodes[towerAvailableBuildPositionRow[towerGridBuildCheckRow]][towerAvailableBuildPositionCol[towerGridBuildCheckCol]].walkable == false) {
+                            buildCondition = false;
+                            break outerloop;
+                            break innerloop;
+                        } else {
+                            buildCondition = true;
+                        }
+
+
+                    }
+                }
+
+
+                if (buildCondition == false) {
+                    document.getElementById("arrowTower").style.top = "0px";
+                    document.getElementById("arrowTower").style.left = "0px";
+                    document.getElementById("arrowTower").style.opacity = "1";
+                } else if (buildCondition == true) {
+                    //console.log("built");
+                    
+                    fruitTD.buildTower(xCoordinatePosition, yCoordinatePosition);
+                    document.getElementById("arrowTower").style.top = "0px";
+                    document.getElementById("arrowTower").style.left = "0px";
+                    document.getElementById("arrowTower").style.opacity = "1";
+                }
+
+
+
+                highlightGridTransparent(towerGridX, towerGridY);
+                highlightGridTransparent(towerGridX + 1, towerGridY + 1);
+                highlightGridTransparent(towerGridX + 1, towerGridY);
+                highlightGridTransparent(towerGridX, towerGridY + 1);
+
+
+
+
+            }
+
+            document.getElementById("arrowTower").onclick = toggle;
+
+        })();
+
+
+
+
+
+
+        (function() {
+
+            var n = 500;
+            var dragok = false;
+            var y, x, d, dy, dx;
+
+            function move(e) {
+                if (!e) e = window.event;
+                if (dragok) {
+                    d.style.left = dx + e.clientX - x + "px";
+                    d.style.top = dy + e.clientY - y + "px";
+
+
+                    return false;
+                }
+            }
+
+            function downDrag(e) {
+                if (!e) e = window.event;
+
+                var temp = (typeof e.target != "undefined") ? e.target : e.srcElement;
+
+                if (temp.tagName != "HTML" | "BODY" && temp.className != "dragPanell") {
+                    temp = (typeof temp.parentNode != "undefined") ? temp.parentNode : temp.parentElement;
+                }
+
+                if (temp.className == "dragPanell") {
+
+                    if (window.opera) {
+                        document.getElementById("Q").focus();
+                    }
+
+                    dragok = true;
+
+                    temp.style.zIndex = n++;
+
+                    d = temp;
+
+                    dx = parseInt(temp.style.left + 0);
+
+                    dy = parseInt(temp.style.top + 660);
+
+                    x = e.clientX;
+
+                    y = e.clientY;
+
+                    document.onmousemove = move;
+
+                    return false;
+                }
+
+
+            }
+
+            function upDrag() {
+
+                dragok = false;
+                document.onmousemove = null;
+
+
+
+            }
+
+            document.onmousedown = downDrag;
+            document.onmouseup = upDrag;
+
+        })();
+
+          
+    </script>
+
+
+</body>
+
+</html>
